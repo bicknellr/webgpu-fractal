@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<body>
+<style>
+#mainCanvas {
+  image-rendering: pixelated;
+}
+</style>
+<canvas id="mainCanvas" width="640" height="640"></canvas>
+
+<script type="module">
+const COLOR_FORMAT = "bgra8unorm";
+
+const adapter = await navigator.gpu.requestAdapter();
+const device = await adapter.requestDevice();
+
+const renderPipeline = device.createRenderPipeline({
+  vertex: {
+    entryPoint: "main",
+    module: device.createShaderModule({
+      code: `
+        let points = array<vec2<f32>, 6>(
+          vec2<f32>(-1.0, -1.0),
+          vec2<f32>(1.0, -1.0),
+          vec2<f32>(-1.0, 1.0),
+          vec2<f32>(1.0, -1.0),
+          vec2<f32>(-1.0, 1.0),
+          vec2<f32>(1.0, 1.0),
+        );
+
+        @stage(vertex)
+        fn main(@builtin(vertex_index) index: u32) -> @builtin(position) vec4<f32> {
+          return vec4<f32>(points[index], 0.0, 1.0);
+        }
+      `,
+    }),
+  },
+  fragment: {
+    targets: [{
+      format: "bgra8unorm",
+    }],
+    entryPoint: "main",
+    module: device.createShaderModule({
+      code: `
+        fn cmul(a: vec2<f32>, b: vec2<f32>) -> vec2<f32> {
+          let angle = atan(a.y / a.x) + atan(b.y / b.x);
+          let length = length(a) * length(b);
+          return length * vec2<f32>(cos(angle), sin(angle));
+        }
+
+        @stage(fragment)
+        fn main(@builtin(position) position: vec4<f32>) -> @location(0) vec4<f32> {
+          var pos = (position.xy / 640.0 - 0.5) * 2.0;
+
+          for (var i: i32; i < 256; i = i + 1) {
+            pos = cmul(pos, pos) + vec2<f32>(0.31, 0.5);
+          }
+
+          if (length(pos) < 1.0) {
+            return vec4<f32>(1.0, 1.0, 1.0, 1.0);
+          } else {
+            return vec4<f32>(0.0, 0.0, 0.0, 1.0);
+          }
+        }
+      `,
+    }),
+  },
+});
+
+const mainCanvas = document.getElementById("mainCanvas");
+const context = mainCanvas.getContext("webgpu");
+context.configure({
+  device,
+  format: COLOR_FORMAT,
+});
+
+const commandEncoder = device.createCommandEncoder();
+
+const renderPass = commandEncoder.beginRenderPass({
+  colorAttachments: [{
+    view: context.getCurrentTexture().createView(),
+    loadOp: "clear",
+    clearValue: {r: 0, g: 0, b: 0, a: 0},
+    storeOp: "store",
+  }],
+});
+renderPass.setPipeline(renderPipeline);
+renderPass.draw(6);
+renderPass.end();
+
+const commandBuffer = commandEncoder.finish();
+
+await device.queue.submit([commandBuffer]);
+</script>
