@@ -13,7 +13,40 @@ const COLOR_FORMAT = "bgra8unorm";
 const adapter = await navigator.gpu.requestAdapter();
 const device = await adapter.requestDevice();
 
+const inBuffer = device.createBuffer({
+  usage: GPUBufferUsage.MAP_WRITE | GPUBufferUsage.COPY_SRC,
+  size: 4 + 4,
+});
+
+const buffer = device.createBuffer({
+  usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+  size: 4 + 4,
+});
+
+const bindGroupLayout = device.createBindGroupLayout({
+  entries: [{
+    binding: 0,
+    visibility: GPUShaderStage.FRAGMENT,
+    buffer: {
+      type: "storage",
+    },
+  }],
+});
+
+const bindGroup = device.createBindGroup({
+  layout: bindGroupLayout,
+  entries: [{
+    binding: 0,
+    resource: {
+      buffer: buffer,
+    },
+  }],
+});
+
 const renderPipeline = device.createRenderPipeline({
+  layout: device.createPipelineLayout({
+    bindGroupLayouts: [bindGroupLayout],
+  }),
   vertex: {
     entryPoint: "main",
     module: device.createShaderModule({
@@ -41,6 +74,13 @@ const renderPipeline = device.createRenderPipeline({
     entryPoint: "main",
     module: device.createShaderModule({
       code: `
+        struct Uniforms {
+          position: vec2<f32>;
+        }
+
+        @group(0) @binding(0)
+        var<storage, read_write> uniforms: Uniforms;
+
         fn cmul(a: vec2<f32>, b: vec2<f32>) -> vec2<f32> {
           let angle = atan(a.y / a.x) + atan(b.y / b.x);
           let length = length(a) * length(b);
@@ -49,7 +89,7 @@ const renderPipeline = device.createRenderPipeline({
 
         @stage(fragment)
         fn main(@builtin(position) position: vec4<f32>) -> @location(0) vec4<f32> {
-          var pos = (position.xy / 640.0 - 0.5) * 2.0;
+          var pos = (position.xy / 640.0 - 0.5) * 2.0 + uniforms.position;
 
           for (var i: i32; i < 256; i = i + 1) {
             pos = cmul(pos, pos) + vec2<f32>(0.31, 0.5);
@@ -73,21 +113,64 @@ context.configure({
   format: COLOR_FORMAT,
 });
 
-const commandEncoder = device.createCommandEncoder();
+let x = 0;
+let y = 0;
 
-const renderPass = commandEncoder.beginRenderPass({
-  colorAttachments: [{
-    view: context.getCurrentTexture().createView(),
-    loadOp: "clear",
-    clearValue: {r: 0, g: 0, b: 0, a: 0},
-    storeOp: "store",
-  }],
+const renderFrame = async () => {
+  const commandEncoder = device.createCommandEncoder();
+
+  await inBuffer.mapAsync(GPUMapMode.WRITE);
+  new Float32Array(inBuffer.getMappedRange()).set([x, y]);
+  inBuffer.unmap();
+
+  commandEncoder.copyBufferToBuffer(inBuffer, 0, buffer, 0, 8);
+
+  const renderPass = commandEncoder.beginRenderPass({
+    colorAttachments: [{
+      view: context.getCurrentTexture().createView(),
+      loadOp: "clear",
+      clearValue: {r: 0, g: 0, b: 0, a: 0},
+      storeOp: "store",
+    }],
+  });
+  renderPass.setPipeline(renderPipeline);
+  renderPass.setBindGroup(0, bindGroup);
+  renderPass.draw(6);
+  renderPass.end();
+
+  const commandBuffer = commandEncoder.finish();
+
+  await device.queue.submit([commandBuffer]);
+};
+
+let lastFrameDone = renderFrame();
+
+mainCanvas.addEventListener('pointerdown', (e) => {
+  const clientRect = mainCanvas.getBoundingClientRect();
+
+  const {clientX: startClientX, clientY: startClientY} = e;
+  const startX = x;
+  const startY = y;
+
+  const handlePointermove = (e) => {
+    const {clientX: currentClientX, clientY: currentClientY} = e;
+
+    x = startX - (currentClientX - startClientX) / 320;
+    y = startY - (currentClientY - startClientY) / 320;
+
+    lastFrameDone = lastFrameDone.then(renderFrame);
+  };
+
+  const stopListening = (e) => {
+    mainCanvas.releasePointerCapture(e.pointerId);
+    mainCanvas.removeEventListener('pointermove', handlePointermove);
+    mainCanvas.removeEventListener('pointerup', stopListening);
+    mainCanvas.removeEventListener('pointercancel', stopListening);
+  };
+
+  mainCanvas.setPointerCapture(e.pointerId);
+  mainCanvas.addEventListener('pointermove', handlePointermove);
+  mainCanvas.addEventListener('pointerup', stopListening);
+  mainCanvas.addEventListener('pointercancel', stopListening);
 });
-renderPass.setPipeline(renderPipeline);
-renderPass.draw(6);
-renderPass.end();
-
-const commandBuffer = commandEncoder.finish();
-
-await device.queue.submit([commandBuffer]);
 </script>
