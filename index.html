@@ -13,14 +13,9 @@ const COLOR_FORMAT = "bgra8unorm";
 const adapter = await navigator.gpu.requestAdapter();
 const device = await adapter.requestDevice();
 
-const inBuffer = device.createBuffer({
-  usage: GPUBufferUsage.MAP_WRITE | GPUBufferUsage.COPY_SRC,
-  size: 4 + 4,
-});
-
 const buffer = device.createBuffer({
   usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
-  size: 4 + 4,
+  size: 2 * Float32Array.BYTES_PER_ELEMENT,
 });
 
 const bindGroupLayout = device.createBindGroupLayout({
@@ -77,11 +72,7 @@ let y = 0;
 const renderFrame = async () => {
   const commandEncoder = device.createCommandEncoder();
 
-  await inBuffer.mapAsync(GPUMapMode.WRITE);
-  new Float32Array(inBuffer.getMappedRange()).set([x, y]);
-  inBuffer.unmap();
-
-  commandEncoder.copyBufferToBuffer(inBuffer, 0, buffer, 0, 8);
+  device.queue.writeBuffer(buffer, 0, new Float32Array([x, y]), 0, 2);
 
   const renderPass = commandEncoder.beginRenderPass({
     colorAttachments: [{
