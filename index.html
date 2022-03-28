@@ -94,7 +94,7 @@ const renderFrame = async () => {
 
 let lastFrameDone = renderFrame();
 
-mainCanvas.addEventListener('pointerdown', (e) => {
+mainCanvas.addEventListener("pointerdown", (e) => {
   const clientRect = mainCanvas.getBoundingClientRect();
 
   const {clientX: startClientX, clientY: startClientY} = e;
@@ -112,14 +112,14 @@ mainCanvas.addEventListener('pointerdown', (e) => {
 
   const stopListening = (e) => {
     mainCanvas.releasePointerCapture(e.pointerId);
-    mainCanvas.removeEventListener('pointermove', handlePointermove);
-    mainCanvas.removeEventListener('pointerup', stopListening);
-    mainCanvas.removeEventListener('pointercancel', stopListening);
+    mainCanvas.removeEventListener("pointermove", handlePointermove);
+    mainCanvas.removeEventListener("pointerup", stopListening);
+    mainCanvas.removeEventListener("pointercancel", stopListening);
   };
 
   mainCanvas.setPointerCapture(e.pointerId);
-  mainCanvas.addEventListener('pointermove', handlePointermove);
-  mainCanvas.addEventListener('pointerup', stopListening);
-  mainCanvas.addEventListener('pointercancel', stopListening);
+  mainCanvas.addEventListener("pointermove", handlePointermove);
+  mainCanvas.addEventListener("pointerup", stopListening);
+  mainCanvas.addEventListener("pointercancel", stopListening);
 });
 </script>
