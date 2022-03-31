@@ -15,7 +15,7 @@ const device = await adapter.requestDevice();
 
 const buffer = device.createBuffer({
   usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
-  size: 2 * Float32Array.BYTES_PER_ELEMENT,
+  size: 16 * Float32Array.BYTES_PER_ELEMENT,
 });
 
 const bindGroupLayout = device.createBindGroupLayout({
@@ -66,13 +66,12 @@ context.configure({
   format: COLOR_FORMAT,
 });
 
-let x = 0;
-let y = 0;
+let viewMatrix = new DOMMatrix();
 
 const renderFrame = async () => {
   const commandEncoder = device.createCommandEncoder();
 
-  device.queue.writeBuffer(buffer, 0, new Float32Array([x, y]), 0, 2);
+  device.queue.writeBuffer(buffer, 0, viewMatrix.toFloat32Array(), 0, 16);
 
   const renderPass = commandEncoder.beginRenderPass({
     colorAttachments: [{
@@ -98,14 +97,14 @@ mainCanvas.addEventListener("pointerdown", (e) => {
   const clientRect = mainCanvas.getBoundingClientRect();
 
   const {clientX: startClientX, clientY: startClientY} = e;
-  const startX = x;
-  const startY = y;
+  const startX = viewMatrix.m41;
+  const startY = viewMatrix.m42;
 
   const handlePointermove = (e) => {
     const {clientX: currentClientX, clientY: currentClientY} = e;
 
-    x = startX - (currentClientX - startClientX) / 320;
-    y = startY - (currentClientY - startClientY) / 320;
+    viewMatrix.m41 = startX - (startClientX - currentClientX) / 320;
+    viewMatrix.m42 = startY - (startClientY - currentClientY) / 320;
 
     lastFrameDone = lastFrameDone.then(renderFrame);
   };
