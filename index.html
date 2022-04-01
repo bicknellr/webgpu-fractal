@@ -67,6 +67,8 @@ context.configure({
 });
 
 let viewMatrix = new DOMMatrix();
+viewMatrix.translateSelf(-1, -1);
+viewMatrix.scaleSelf(1 / 320, 1 / 320, 1);
 
 const renderFrame = async () => {
   const commandEncoder = device.createCommandEncoder();
@@ -94,17 +96,16 @@ const renderFrame = async () => {
 let lastFrameDone = renderFrame();
 
 mainCanvas.addEventListener("pointerdown", (e) => {
-  const clientRect = mainCanvas.getBoundingClientRect();
-
-  const {clientX: startClientX, clientY: startClientY} = e;
-  const startX = viewMatrix.m41;
-  const startY = viewMatrix.m42;
+  const {offsetX: startOffsetX, offsetY: startOffsetY} = e;
+  const startViewMatrix = viewMatrix.toString();
 
   const handlePointermove = (e) => {
-    const {clientX: currentClientX, clientY: currentClientY} = e;
+    const {offsetX: currentOffsetX, offsetY: currentOffsetY} = e;
 
-    viewMatrix.m41 = startX - (startClientX - currentClientX) / 320;
-    viewMatrix.m42 = startY - (startClientY - currentClientY) / 320;
+    viewMatrix.setMatrixValue(startViewMatrix);
+    const dx = startOffsetX - currentOffsetX;
+    const dy = startOffsetY - currentOffsetY;
+    viewMatrix.translateSelf(dx, dy);
 
     lastFrameDone = lastFrameDone.then(renderFrame);
   };
@@ -120,5 +121,14 @@ mainCanvas.addEventListener("pointerdown", (e) => {
   mainCanvas.addEventListener("pointermove", handlePointermove);
   mainCanvas.addEventListener("pointerup", stopListening);
   mainCanvas.addEventListener("pointercancel", stopListening);
+});
+
+mainCanvas.addEventListener("wheel", (e) => {
+  const {deltaY, offsetX, offsetY} = e;
+
+  const scale = 2 ** (deltaY / 128);
+  viewMatrix.scale3dSelf(scale, offsetX, offsetY);
+
+  lastFrameDone = lastFrameDone.then(renderFrame);
 });
 </script>
