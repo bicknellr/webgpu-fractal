@@ -126,10 +126,7 @@ viewMatrix.scaleSelf(
 viewMatrix.translateSelf(-(mainCanvas.width / 2), -(mainCanvas.height / 2));
 
 const enqueueFrame = (() => {
-  let framePending = false;
-
   const renderFrame = async () => {
-    framePending = true;
     const commandEncoder = device.createCommandEncoder();
 
     const uniforms = new Float32Array([
@@ -156,12 +153,16 @@ const enqueueFrame = (() => {
     const commandBuffer = commandEncoder.finish();
 
     await device.queue.submit([commandBuffer]);
-    framePending = false;
   };
 
+  let framePending = false;
   return () => {
     if (!framePending) {
-      renderFrame();
+      framePending = true;
+      requestAnimationFrame(async () => {
+        await renderFrame();
+        framePending = false;
+      });
     }
   };
 })();
