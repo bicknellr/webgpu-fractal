@@ -125,36 +125,48 @@ viewMatrix.scaleSelf(
 );
 viewMatrix.translateSelf(-(mainCanvas.width / 2), -(mainCanvas.height / 2));
 
-const renderFrame = async () => {
-  const commandEncoder = device.createCommandEncoder();
+const enqueueFrame = (() => {
+  let framePending = false;
 
-  const uniforms = new Float32Array([
-    ...viewMatrix.toFloat32Array(),
-    parseFloat(iterationsRange.value),
-    parseFloat(aRange.value),
-    parseFloat(bRange.value)
-  ]);
-  device.queue.writeBuffer(buffer, 0, uniforms, 0, uniforms.length);
+  const renderFrame = async () => {
+    framePending = true;
+    const commandEncoder = device.createCommandEncoder();
 
-  const renderPass = commandEncoder.beginRenderPass({
-    colorAttachments: [{
-      view: context.getCurrentTexture().createView(),
-      loadOp: "clear",
-      clearValue: {r: 0, g: 0, b: 0, a: 0},
-      storeOp: "store",
-    }],
-  });
-  renderPass.setPipeline(renderPipeline);
-  renderPass.setBindGroup(0, bindGroup);
-  renderPass.draw(6);
-  renderPass.end();
+    const uniforms = new Float32Array([
+      ...viewMatrix.toFloat32Array(),
+      parseFloat(iterationsRange.value),
+      parseFloat(aRange.value),
+      parseFloat(bRange.value)
+    ]);
+    device.queue.writeBuffer(buffer, 0, uniforms, 0, uniforms.length);
 
-  const commandBuffer = commandEncoder.finish();
+    const renderPass = commandEncoder.beginRenderPass({
+      colorAttachments: [{
+        view: context.getCurrentTexture().createView(),
+        loadOp: "clear",
+        clearValue: {r: 0, g: 0, b: 0, a: 0},
+        storeOp: "store",
+      }],
+    });
+    renderPass.setPipeline(renderPipeline);
+    renderPass.setBindGroup(0, bindGroup);
+    renderPass.draw(6);
+    renderPass.end();
 
-  await device.queue.submit([commandBuffer]);
-};
+    const commandBuffer = commandEncoder.finish();
 
-let lastFrameDone = renderFrame();
+    await device.queue.submit([commandBuffer]);
+    framePending = false;
+  };
+
+  return () => {
+    if (!framePending) {
+      renderFrame();
+    }
+  };
+})();
+
+enqueueFrame();
 
 mainCanvas.addEventListener("pointerdown", (e) => {
   const {offsetX: startOffsetX, offsetY: startOffsetY} = e;
@@ -168,7 +180,7 @@ mainCanvas.addEventListener("pointerdown", (e) => {
     const dy = startOffsetY - currentOffsetY;
     viewMatrix.translateSelf(dx, dy);
 
-    lastFrameDone = lastFrameDone.then(renderFrame);
+    enqueueFrame();
   };
 
   const stopListening = (e) => {
@@ -190,7 +202,7 @@ mainCanvas.addEventListener("wheel", (e) => {
   const scale = 2 ** (deltaY / 128);
   viewMatrix.scale3dSelf(scale, offsetX, offsetY);
 
-  lastFrameDone = lastFrameDone.then(renderFrame);
+  enqueueFrame();
 });
 
 new ResizeObserver((entries) => {
@@ -209,18 +221,18 @@ new ResizeObserver((entries) => {
     format: context.getPreferredFormat(adapter),
   });
 
-  lastFrameDone = lastFrameDone.then(renderFrame);
+  enqueueFrame();
 }).observe(mainCanvas);
 
 iterationsRange.addEventListener("input", () => {
-  lastFrameDone = lastFrameDone.then(renderFrame);
+  enqueueFrame();
 });
 
 aRange.addEventListener("input", () => {
-  lastFrameDone = lastFrameDone.then(renderFrame);
+  enqueueFrame();
 });
 
 bRange.addEventListener("input", () => {
-  lastFrameDone = lastFrameDone.then(renderFrame);
+  enqueueFrame();
 });
 </script>
