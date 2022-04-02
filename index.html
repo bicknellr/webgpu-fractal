@@ -18,8 +18,33 @@ body {
   height: 100%;
   image-rendering: pixelated;
 }
+
+#controls {
+  position: absolute;
+  margin: 20px;
+  top: 0px;
+  left: 0px;
+  padding: 20px;
+  background-color: hsla(0deg, 0%, 12.5%, 1);
+  color: white;
+  border: 2px solid hsla(0deg, 0%, 25%, 1);
+  border-radius: 4px;
+  display: grid;
+  grid: 1fr / auto 1fr;
+  gap: 4px;
+}
+
+input {
+  width: clamp(100px, 50vw, 900px);
+}
 </style>
 <canvas id="mainCanvas" width="640" height="640"></canvas>
+<div id="controls">
+  <span>a</span>
+  <input type="range" id="aRange" min="-1" max="1" step="0.000001" value="0.31">
+  <span>b</span>
+  <input type="range" id="bRange" min="-1" max="1" step="0.000001" value="0.5">
+</div>
 
 <script type="module">
 const adapter = await navigator.gpu.requestAdapter();
@@ -27,7 +52,11 @@ const device = await adapter.requestDevice();
 
 const buffer = device.createBuffer({
   usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
-  size: 16 * Float32Array.BYTES_PER_ELEMENT,
+  size:
+    /* viewMatrix */ 16 * Float32Array.BYTES_PER_ELEMENT +
+    /* a */ 1 * Float32Array.BYTES_PER_ELEMENT +
+    /* b */ 1 * Float32Array.BYTES_PER_ELEMENT +
+    0,
 });
 
 const bindGroupLayout = device.createBindGroupLayout({
@@ -89,7 +118,12 @@ viewMatrix.translateSelf(-(mainCanvas.width / 2), -(mainCanvas.height / 2));
 const renderFrame = async () => {
   const commandEncoder = device.createCommandEncoder();
 
-  device.queue.writeBuffer(buffer, 0, viewMatrix.toFloat32Array(), 0, 16);
+  const uniforms = new Float32Array([
+    ...viewMatrix.toFloat32Array(),
+    parseFloat(aRange.value),
+    parseFloat(bRange.value)
+  ]);
+  device.queue.writeBuffer(buffer, 0, uniforms, 0, uniforms.length);
 
   const renderPass = commandEncoder.beginRenderPass({
     colorAttachments: [{
@@ -166,4 +200,12 @@ new ResizeObserver((entries) => {
 
   lastFrameDone = lastFrameDone.then(renderFrame);
 }).observe(mainCanvas);
+
+aRange.addEventListener("input", () => {
+  lastFrameDone = lastFrameDone.then(renderFrame);
+});
+
+bRange.addEventListener("input", () => {
+  lastFrameDone = lastFrameDone.then(renderFrame);
+});
 </script>

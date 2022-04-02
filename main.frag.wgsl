@@ -1,5 +1,7 @@
 struct Uniforms {
   viewMatrix: mat4x4<f32>;
+  a: f32;
+  b: f32;
 }
 
 @group(0) @binding(0)
@@ -16,7 +18,7 @@ fn main(@builtin(position) position: vec4<f32>) -> @location(0) vec4<f32> {
   var pos = (uniforms.viewMatrix * position).xy;
 
   for (var i: i32; i < 256; i = i + 1) {
-    pos = cmul(pos, pos) + vec2<f32>(0.31, 0.5);
+    pos = cmul(pos, pos) + vec2<f32>(uniforms.a, uniforms.b);
   }
 
   if (length(pos) < 1.0) {
