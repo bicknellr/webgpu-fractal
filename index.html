@@ -40,6 +40,8 @@ input {
 </style>
 <canvas id="mainCanvas" width="640" height="640"></canvas>
 <div id="controls">
+  <span>iterations</span>
+  <input type="range" id="iterationsRange" min="0" max="1024" step="1" value="256">
   <span>a</span>
   <input type="range" id="aRange" min="-1" max="1" step="0.000001" value="0.31">
   <span>b</span>
@@ -54,6 +56,7 @@ const buffer = device.createBuffer({
   usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
   size:
     /* viewMatrix */ 16 * Float32Array.BYTES_PER_ELEMENT +
+    /* iterations */ 1 * Float32Array.BYTES_PER_ELEMENT +
     /* a */ 1 * Float32Array.BYTES_PER_ELEMENT +
     /* b */ 1 * Float32Array.BYTES_PER_ELEMENT +
     0,
@@ -120,6 +123,7 @@ const renderFrame = async () => {
 
   const uniforms = new Float32Array([
     ...viewMatrix.toFloat32Array(),
+    parseFloat(iterationsRange.value),
     parseFloat(aRange.value),
     parseFloat(bRange.value)
   ]);
@@ -200,6 +204,10 @@ new ResizeObserver((entries) => {
 
   lastFrameDone = lastFrameDone.then(renderFrame);
 }).observe(mainCanvas);
+
+iterationsRange.addEventListener("input", () => {
+  lastFrameDone = lastFrameDone.then(renderFrame);
+});
 
 aRange.addEventListener("input", () => {
   lastFrameDone = lastFrameDone.then(renderFrame);
