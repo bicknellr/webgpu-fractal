@@ -47,17 +47,90 @@ input {
   <hr>
   <div id="controlsGrid">
     <span>Max iterations</span>
-    <input type="range" id="maxIterationsRange" min="0" max="1024" step="1" value="256">
+    <input type="range" id="maxIterationsRange"
+      search-param="maxIter"
+      min="1"
+      max="1024"
+      step="1"
+      value="256"
+    >
+
     <span>Re(c)</span>
-    <input type="range" id="cReRange" min="-1" max="1" step="0.000001" value="0.31">
+    <input type="range" id="cReRange"
+      search-param="cRe"
+      min="-1"
+      max="1"
+      step="0.000001"
+      value="0.31"
+    >
+
     <span>Im(c)</span>
-    <input type="range" id="cImRange" min="-1" max="1" step="0.000001" value="0.5">
+    <input type="range" id="cImRange"
+      search-param="cIm"
+      min="-1"
+      max="1"
+      step="0.000001"
+      value="0.5"
+    >
+
     <span>Julia to Mandelbrot</span>
-    <input type="range" id="juliaToMandelbrotRange" min="0" max="1" step="0.000001" value="0">
+    <input type="range" id="juliaToMandelbrotRange"
+      search-param="jToM"
+      min="0"
+      max="1"
+      step="0.000001"
+      value="0"
+    >
   </div>
 </details>
 
 <script type="module">
+const throttled = (ms, fn) => {
+  let last = -ms;
+  let pendingArgs = undefined;
+  let pendingTimeout = undefined;
+
+  const runSync = (thisArg, args) => {
+    fn.apply(thisArg, args);
+    last = performance.now();
+    pendingArgs = undefined;
+    clearTimeout(pendingTimeout);
+    pendingTimeout = undefined;
+  };
+
+  return function(...args) {
+    if (performance.now() - last > ms) {
+      runSync(this, args);
+      return;
+    }
+
+    pendingArgs = args;
+    if (!pendingTimeout) {
+      pendingTimeout = setTimeout(() => {
+        runSync(this, args);
+      }, ms);
+    }
+  };
+};
+
+const restoreInputs = () => {
+  for (const [key, value] of new URLSearchParams(location.search)) {
+    const element = document.querySelector(`[search-param="${key}"]`);
+    if (element) {
+      element.value = value;
+    }
+  }
+};
+restoreInputs();
+
+const saveInputs = throttled(100, () => {
+  const query = "?" + Array.from(document.querySelectorAll("[search-param]")).map(element => {
+    return `${element.getAttribute("search-param")}=${encodeURIComponent(element.value)}`;
+  }).join("&");
+
+  history.replaceState(undefined, "", query);
+});
+
 const adapter = await navigator.gpu.requestAdapter();
 const device = await adapter.requestDevice();
 
@@ -157,6 +230,7 @@ const enqueueFrame = (() => {
     const commandBuffer = commandEncoder.finish();
 
     await device.queue.submit([commandBuffer]);
+    saveInputs();
   };
 
   let framePending = false;
