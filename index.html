@@ -237,7 +237,20 @@ const getCurrentViewMatrix = () => {
 };
 
 const enqueueFrame = (() => {
+  let lastWidth = mainCanvas.width;
+  let lastHeight = mainCanvas.width;
+
   const renderFrame = async () => {
+    if (mainCanvas.width !== lastWidth || mainCanvas.height !== lastHeight) {
+      lastWidth = mainCanvas.width;
+      lastHeight = mainCanvas.height;
+
+      context.configure({
+        device,
+        format: context.getPreferredFormat(adapter),
+      });
+    }
+
     const commandEncoder = device.createCommandEncoder();
 
     const uniforms = new Float32Array([
@@ -348,11 +361,6 @@ new ResizeObserver((entries) => {
 
   mainCanvas.width = width;
   mainCanvas.height = height;
-
-  context.configure({
-    device,
-    format: context.getPreferredFormat(adapter),
-  });
 
   enqueueFrame();
 }).observe(mainCanvas);
