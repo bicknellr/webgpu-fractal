@@ -26,6 +26,14 @@ summary:hover {
   cursor: pointer;
 }
 
+:link {
+  color: hsla(210deg, 100%, 62.5%, 1);
+}
+
+:visited {
+  color: hsla(270deg, 100%, 75%, 1);
+}
+
 #mainCanvas {
   width: 100%;
   height: 100%;
@@ -112,9 +120,24 @@ summary:hover {
       value="0"
     >
   </div>
+  <hr>
+  <a href="?">Defaults</a>
+  <a href="?cRe=0&cIm=0&jToM=1">Mandelbrot Set</a>
 </details>
 
 <script type="module">
+window.addEventListener("click", (e) => {
+  const {target} = e;
+  if (target instanceof HTMLAnchorElement) {
+    const dest = new URL(target.href);
+    if (dest.origin === location.origin && dest.pathname === location.pathname) {
+      restoreInputs(dest.search);
+      enqueueFrame();
+      e.preventDefault();
+    }
+  }
+});
+
 const throttled = (ms, fn) => {
   let last = -ms;
   let pendingArgs = undefined;
@@ -143,15 +166,14 @@ const throttled = (ms, fn) => {
   };
 };
 
-const restoreInputs = () => {
-  for (const [key, value] of new URLSearchParams(location.search)) {
-    const element = document.querySelector(`[setting-name="${key}"]`);
-    if (element) {
-      element.value = value;
-    }
+const restoreInputs = (search) => {
+  const params = new URLSearchParams(search);
+  for (const element of document.querySelectorAll("[setting-name]")) {
+    const settingName = element.getAttribute("setting-name");
+    element.value = params.get(settingName) ?? element.defaultValue;
   }
 };
-restoreInputs();
+restoreInputs(location.search);
 
 const saveInputs = throttled(100, () => {
   const query = "?" + Array.from(document.querySelectorAll("[setting-name]")).map(element => {
