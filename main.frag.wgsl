@@ -32,11 +32,13 @@ let palette = array<vec4<f32>, palette_len>(
 
 @stage(fragment)
 fn main(@builtin(position) position: vec4<f32>) -> @location(0) vec4<f32> {
-  var pos = (uniforms.viewMatrix * position).xy;
+  let z = (uniforms.viewMatrix * position).xy;
+  let c = vec2<f32>(uniforms.cRe, uniforms.cIm);
 
-  var i: i32 = 0;
-  for (; length(pos) <= 4.0 && i < i32(uniforms.maxIterations); i = i + 1) {
-    pos = cmul(pos, pos) + vec2<f32>(uniforms.cRe, uniforms.cIm);
+  var out = z;
+  var i = 0;
+  for (; length(out) <= 4.0 && i < i32(uniforms.maxIterations); i = i + 1) {
+    out = cmul(out, out) + c;
   }
 
   if (i < i32(uniforms.maxIterations)) {
