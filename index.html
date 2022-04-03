@@ -60,25 +60,25 @@ summary:hover {
   <div id="settingsGrid">
     <span>x</span>
     <input type="number" id="xInput"
-      search-param="x"
+      setting-name="x"
       value="0"
     >
 
     <span>y</span>
     <input type="number" id="yInput"
-      search-param="y"
+      setting-name="y"
       value="0"
     >
 
     <span>zoom</span>
     <input type="number" id="zoomInput"
-      search-param="zoom"
+      setting-name="zoom"
       value="0"
     >
 
     <span>Max iterations</span>
     <input type="range" id="maxIterationsRange"
-      search-param="maxIter"
+      setting-name="maxIter"
       min="1"
       max="1024"
       step="1"
@@ -87,7 +87,7 @@ summary:hover {
 
     <span>Re(c)</span>
     <input type="range" id="cReRange"
-      search-param="cRe"
+      setting-name="cRe"
       min="-1"
       max="1"
       step="0.000001"
@@ -96,7 +96,7 @@ summary:hover {
 
     <span>Im(c)</span>
     <input type="range" id="cImRange"
-      search-param="cIm"
+      setting-name="cIm"
       min="-1"
       max="1"
       step="0.000001"
@@ -105,7 +105,7 @@ summary:hover {
 
     <span>Julia to Mandelbrot</span>
     <input type="range" id="juliaToMandelbrotRange"
-      search-param="jToM"
+      setting-name="jToM"
       min="0"
       max="1"
       step="0.000001"
@@ -145,7 +145,7 @@ const throttled = (ms, fn) => {
 
 const restoreInputs = () => {
   for (const [key, value] of new URLSearchParams(location.search)) {
-    const element = document.querySelector(`[search-param="${key}"]`);
+    const element = document.querySelector(`[setting-name="${key}"]`);
     if (element) {
       element.value = value;
     }
@@ -154,8 +154,8 @@ const restoreInputs = () => {
 restoreInputs();
 
 const saveInputs = throttled(100, () => {
-  const query = "?" + Array.from(document.querySelectorAll("[search-param]")).map(element => {
-    return `${element.getAttribute("search-param")}=${encodeURIComponent(element.value)}`;
+  const query = "?" + Array.from(document.querySelectorAll("[setting-name]")).map(element => {
+    return `${element.getAttribute("setting-name")}=${encodeURIComponent(element.value)}`;
   }).join("&");
 
   history.replaceState(undefined, "", query);
@@ -365,7 +365,7 @@ new ResizeObserver((entries) => {
   enqueueFrame();
 }).observe(mainCanvas);
 
-for (const input of document.querySelectorAll("[search-param]")) {
+for (const input of document.querySelectorAll("[setting-name]")) {
   input.addEventListener("input", () => { enqueueFrame(); });
 }
 </script>
