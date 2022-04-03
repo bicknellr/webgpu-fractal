@@ -131,7 +131,7 @@ window.addEventListener("click", (e) => {
   if (target instanceof HTMLAnchorElement) {
     const dest = new URL(target.href);
     if (dest.origin === location.origin && dest.pathname === location.pathname) {
-      restoreInputs(dest.search);
+      restoreSettings(dest.search);
       enqueueFrame();
       e.preventDefault();
     }
@@ -166,16 +166,16 @@ const throttled = (ms, fn) => {
   };
 };
 
-const restoreInputs = (search) => {
+const restoreSettings = (search) => {
   const params = new URLSearchParams(search);
   for (const element of document.querySelectorAll("[setting-name]")) {
     const settingName = element.getAttribute("setting-name");
     element.value = params.get(settingName) ?? element.defaultValue;
   }
 };
-restoreInputs(location.search);
+restoreSettings(location.search);
 
-const saveInputs = throttled(100, () => {
+const saveSettings = throttled(100, () => {
   const query = "?" + Array.from(document.querySelectorAll("[setting-name]")).map(element => {
     return `${element.getAttribute("setting-name")}=${encodeURIComponent(element.value)}`;
   }).join("&");
@@ -300,7 +300,7 @@ const enqueueFrame = (() => {
     const commandBuffer = commandEncoder.finish();
 
     await device.queue.submit([commandBuffer]);
-    saveInputs();
+    saveSettings();
   };
 
   let framePending = false;
