@@ -365,19 +365,7 @@ new ResizeObserver((entries) => {
   enqueueFrame();
 }).observe(mainCanvas);
 
-maxIterationsRange.addEventListener("input", () => {
-  enqueueFrame();
-});
-
-cReRange.addEventListener("input", () => {
-  enqueueFrame();
-});
-
-cImRange.addEventListener("input", () => {
-  enqueueFrame();
-});
-
-juliaToMandelbrotRange.addEventListener("input", () => {
-  enqueueFrame();
-});
+for (const input of document.querySelectorAll("[search-param]")) {
+  input.addEventListener("input", () => { enqueueFrame(); });
+}
 </script>
