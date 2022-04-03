@@ -39,7 +39,7 @@ fn main(@builtin(position) position: vec4<f32>) -> @location(0) vec4<f32> {
     pos = cmul(pos, pos) + vec2<f32>(uniforms.cRe, uniforms.cIm);
   }
 
-  if (length(pos) > 1.0) {
+  if (i < i32(uniforms.maxIterations)) {
     return palette[i % palette_len];
   } else {
     return vec4<f32>(0.0, 0.0, 0.0, 1.0);
