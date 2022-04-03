@@ -58,6 +58,24 @@ summary:hover {
   <summary>Settings</summary>
   <hr>
   <div id="settingsGrid">
+    <span>x</span>
+    <input type="number" id="xInput"
+      search-param="x"
+      value="0"
+    >
+
+    <span>y</span>
+    <input type="number" id="yInput"
+      search-param="y"
+      value="0"
+    >
+
+    <span>zoom</span>
+    <input type="number" id="zoomInput"
+      search-param="zoom"
+      value="0"
+    >
+
     <span>Max iterations</span>
     <input type="range" id="maxIterationsRange"
       search-param="maxIter"
@@ -205,20 +223,25 @@ context.configure({
   format: context.getPreferredFormat(adapter),
 });
 
-const viewMatrix = new DOMMatrix();
-const aspectRatio = mainCanvas.width / mainCanvas.height;
-viewMatrix.scaleSelf(
-  2 / mainCanvas.width * Math.max(aspectRatio, 1),
-  2 / mainCanvas.height * Math.min(aspectRatio, 1),
-);
-viewMatrix.translateSelf(-(mainCanvas.width / 2), -(mainCanvas.height / 2));
+const getCurrentViewMatrix = () => {
+  const aspectRatio = mainCanvas.width / mainCanvas.height;
+  const viewMatrix = new DOMMatrix();
+  viewMatrix.translateSelf(xInput.value, yInput.value);
+  viewMatrix.scaleSelf(10 ** -zoomInput.value);
+  viewMatrix.scaleSelf(
+    2 / mainCanvas.width * Math.max(aspectRatio, 1),
+    2 / mainCanvas.height * Math.max(1 / aspectRatio, 1),
+  );
+  viewMatrix.translateSelf(-(mainCanvas.width / 2), -(mainCanvas.height / 2));
+  return viewMatrix;
+};
 
 const enqueueFrame = (() => {
   const renderFrame = async () => {
     const commandEncoder = device.createCommandEncoder();
 
     const uniforms = new Float32Array([
-      ...viewMatrix.toFloat32Array(),
+      ...getCurrentViewMatrix().toFloat32Array(),
       parseFloat(maxIterationsRange.value),
       parseFloat(cReRange.value),
       parseFloat(cImRange.value),
@@ -261,15 +284,29 @@ enqueueFrame();
 
 mainCanvas.addEventListener("pointerdown", (e) => {
   const {offsetX: startOffsetX, offsetY: startOffsetY} = e;
-  const startViewMatrix = viewMatrix.toString();
+  const startViewMatrix = getCurrentViewMatrix();
+  const {
+    x: startX,
+    y: startY
+  } = startViewMatrix.transformPoint({
+    x: startOffsetX,
+    y: startOffsetY,
+  });
 
   const handlePointermove = (e) => {
     const {offsetX: currentOffsetX, offsetY: currentOffsetY} = e;
+    const {
+      x: currentX,
+      y: currentY
+    } = getCurrentViewMatrix().transformPoint({
+      x: currentOffsetX,
+      y: currentOffsetY,
+    });
 
-    viewMatrix.setMatrixValue(startViewMatrix);
-    const dx = startOffsetX - currentOffsetX;
-    const dy = startOffsetY - currentOffsetY;
-    viewMatrix.translateSelf(dx, dy);
+    const dx = currentX - startX;
+    const dy = currentY - startY;
+    xInput.value = parseFloat(xInput.value) - dx;
+    yInput.value = parseFloat(yInput.value) - dy;
 
     enqueueFrame();
   };
@@ -290,22 +327,27 @@ mainCanvas.addEventListener("pointerdown", (e) => {
 mainCanvas.addEventListener("wheel", (e) => {
   const {deltaY, offsetX, offsetY} = e;
 
-  const scale = 2 ** (deltaY / 128);
-  viewMatrix.scale3dSelf(scale, offsetX, offsetY);
+  const {x: startX, y: startY} =
+      getCurrentViewMatrix().transformPoint({x: offsetX, y: offsetY});
+
+  zoomInput.value = parseFloat(zoomInput.value) - deltaY / 512;
+
+  const {x: endX, y: endY} =
+      getCurrentViewMatrix().transformPoint({x: offsetX, y: offsetY});
+
+  const dx = endX - startX;
+  const dy = endY - startY;
+  xInput.value = parseFloat(xInput.value) - dx;
+  yInput.value = parseFloat(yInput.value) - dy;
 
   enqueueFrame();
 });
 
 new ResizeObserver((entries) => {
-  const {width: oldWidth, height: oldHeight} = mainCanvas;
-  const {width: newWidth, height: newHeight} = entries.at(-1).contentRect;
+  const {width, height} = entries.at(-1).contentRect;
 
-  const dx = oldWidth / 2 - newWidth / 2;
-  const dy = oldHeight / 2 - newHeight / 2;
-  viewMatrix.translateSelf(dx, dy);
-
-  mainCanvas.width = newWidth;
-  mainCanvas.height = newHeight;
+  mainCanvas.width = width;
+  mainCanvas.height = height;
 
   context.configure({
     device,
