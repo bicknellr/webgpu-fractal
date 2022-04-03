@@ -3,6 +3,7 @@ struct Uniforms {
   maxIterations: f32;
   cRe: f32;
   cIm: f32;
+  juliaToMandelbrot: f32;
 }
 
 @group(0) @binding(0)
@@ -35,10 +36,11 @@ fn main(@builtin(position) position: vec4<f32>) -> @location(0) vec4<f32> {
   let z = (uniforms.viewMatrix * position).xy;
   let c = vec2<f32>(uniforms.cRe, uniforms.cIm);
 
-  var out = z;
+  var out = mix(z, c, uniforms.juliaToMandelbrot);
+  let offset = mix(c, z, uniforms.juliaToMandelbrot);
   var i = 0;
   for (; length(out) <= 4.0 && i < i32(uniforms.maxIterations); i = i + 1) {
-    out = cmul(out, out) + c;
+    out = cmul(out, out) + offset;
   }
 
   if (i < i32(uniforms.maxIterations)) {

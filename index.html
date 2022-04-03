@@ -52,6 +52,8 @@ input {
     <input type="range" id="cReRange" min="-1" max="1" step="0.000001" value="0.31">
     <span>Im(c)</span>
     <input type="range" id="cImRange" min="-1" max="1" step="0.000001" value="0.5">
+    <span>Julia to Mandelbrot</span>
+    <input type="range" id="juliaToMandelbrotRange" min="0" max="1" step="0.000001" value="0">
   </div>
 </details>
 
@@ -66,6 +68,7 @@ const buffer = device.createBuffer({
     /* maxIterations */ 1 * Float32Array.BYTES_PER_ELEMENT +
     /* cRe */ 1 * Float32Array.BYTES_PER_ELEMENT +
     /* cIm */ 1 * Float32Array.BYTES_PER_ELEMENT +
+    /* juliaToMandelbrot */ 1 * Float32Array.BYTES_PER_ELEMENT +
     0,
 });
 
@@ -133,7 +136,8 @@ const enqueueFrame = (() => {
       ...viewMatrix.toFloat32Array(),
       parseFloat(maxIterationsRange.value),
       parseFloat(cReRange.value),
-      parseFloat(cImRange.value)
+      parseFloat(cImRange.value),
+      parseFloat(juliaToMandelbrotRange.value),
     ]);
     device.queue.writeBuffer(buffer, 0, uniforms, 0, uniforms.length);
 
@@ -234,6 +238,10 @@ cReRange.addEventListener("input", () => {
 });
 
 cImRange.addEventListener("input", () => {
+  enqueueFrame();
+});
+
+juliaToMandelbrotRange.addEventListener("input", () => {
   enqueueFrame();
 });
 </script>
