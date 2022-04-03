@@ -1,6 +1,11 @@
 <!DOCTYPE html>
 <body>
 <style>
+:root {
+  background-color: hsla(0deg, 0%, 25%, 1);
+  color: white;
+}
+
 html, body {
   margin: 0px;
   border: none;
@@ -46,7 +51,6 @@ summary:hover {
   left: 1em;
   padding: 0.5em;
   background-color: hsla(0deg, 0%, 12.5%, 1);
-  color: white;
   border: 2px solid hsla(0deg, 0%, 25%, 1);
   border-radius: 0.25em;
 }
@@ -59,6 +63,29 @@ summary:hover {
 
 #settingsGrid input {
   width: clamp(100px, 50vw, 900px);
+}
+
+#errorBackground {
+  display: none;
+}
+
+#errorBackground[visible] {
+  position: absolute;
+  top: 0px;
+  right: 0px;
+  bottom: 0px;
+  left: 0px;
+  background-color: hsla(0deg, 0%, 12.5%, 1);
+
+  display: flex;
+  place-content: center;
+  place-items: center;
+}
+
+#errorDialog {
+  border: 2px solid hsla(0deg, 50%, 50%, 1);
+  border-radius: 0.25em;
+  padding: 1em;
 }
 </style>
 <canvas id="mainCanvas" width="640" height="640"></canvas>
@@ -125,7 +152,18 @@ summary:hover {
   <a href="?cRe=0&cIm=0&jToM=1">Mandelbrot Set</a>
 </details>
 
+<div id="errorBackground">
+  <div id="errorDialog">
+    This page requires WebGPU to be supported and enabled in your browser.
+  </div>
+</div>
+
 <script type="module">
+if (!("gpu" in navigator)) {
+  errorBackground.setAttribute("visible", "");
+  throw new Error("WebGPU is not available.");
+}
+
 window.addEventListener("click", (e) => {
   const {target} = e;
   if (target instanceof HTMLAnchorElement) {
