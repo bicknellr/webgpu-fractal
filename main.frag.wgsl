@@ -10,9 +10,7 @@ struct Uniforms {
 var<storage, read_write> uniforms: Uniforms;
 
 fn cmul(a: vec2<f32>, b: vec2<f32>) -> vec2<f32> {
-  let angle = atan2(a.y, a.x) + atan2(b.y, b.x);
-  let length = length(a) * length(b);
-  return length * vec2<f32>(cos(angle), sin(angle));
+  return vec2<f32>(a.x * b.x - a.y * b.y, a.x * b.y + a.y * b.x);
 }
 
 let palette_len = 12;
