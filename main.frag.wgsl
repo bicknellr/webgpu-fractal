@@ -1,9 +1,9 @@
 struct Uniforms {
-  viewMatrix: mat4x4<f32>;
-  maxIterations: f32;
-  cRe: f32;
-  cIm: f32;
-  juliaToMandelbrot: f32;
+  viewMatrix: mat4x4<f32>,
+  maxIterations: f32,
+  cRe: f32,
+  cIm: f32,
+  juliaToMandelbrot: f32,
 }
 
 @group(0) @binding(0)
