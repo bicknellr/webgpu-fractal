@@ -280,7 +280,7 @@ const mainCanvas = document.getElementById("mainCanvas");
 const context = mainCanvas.getContext("webgpu");
 context.configure({
   device,
-  format: context.getPreferredFormat(adapter),
+  format: navigator.gpu.getPreferredCanvasFormat(),
 });
 
 const getCurrentViewMatrix = () => {
@@ -307,7 +307,7 @@ const enqueueFrame = (() => {
 
       context.configure({
         device,
-        format: context.getPreferredFormat(adapter),
+        format: navigator.gpu.getPreferredCanvasFormat(),
       });
     }
 
