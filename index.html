@@ -363,8 +363,8 @@ mainCanvas.addEventListener("pointerdown", (e) => {
     x: startX,
     y: startY
   } = startViewMatrix.transformPoint({
-    x: startOffsetX,
-    y: startOffsetY,
+    x: startOffsetX * devicePixelRatio,
+    y: startOffsetY * devicePixelRatio,
   });
 
   const handlePointermove = (e) => {
@@ -373,8 +373,8 @@ mainCanvas.addEventListener("pointerdown", (e) => {
       x: currentX,
       y: currentY
     } = getCurrentViewMatrix().transformPoint({
-      x: currentOffsetX,
-      y: currentOffsetY,
+      x: currentOffsetX * devicePixelRatio,
+      y: currentOffsetY * devicePixelRatio,
     });
 
     const dx = currentX - startX;
@@ -401,13 +401,17 @@ mainCanvas.addEventListener("pointerdown", (e) => {
 mainCanvas.addEventListener("wheel", (e) => {
   const {deltaY, offsetX, offsetY} = e;
 
-  const {x: startX, y: startY} =
-      getCurrentViewMatrix().transformPoint({x: offsetX, y: offsetY});
+  const {x: startX, y: startY} = getCurrentViewMatrix().transformPoint({
+    x: offsetX * devicePixelRatio,
+    y: offsetY * devicePixelRatio,
+  });
 
   zoomInput.value = parseFloat(zoomInput.value) - deltaY / 512;
 
-  const {x: endX, y: endY} =
-      getCurrentViewMatrix().transformPoint({x: offsetX, y: offsetY});
+  const {x: endX, y: endY} = getCurrentViewMatrix().transformPoint({
+    x: offsetX * devicePixelRatio,
+    y: offsetY * devicePixelRatio,
+  });
 
   const dx = endX - startX;
   const dy = endY - startY;
@@ -418,13 +422,20 @@ mainCanvas.addEventListener("wheel", (e) => {
 });
 
 new ResizeObserver((entries) => {
-  const {width, height} = entries.at(-1).contentRect;
+  const lastEntry = entries.at(-1);
+
+  let {width, height} = lastEntry.contentRect;
+  const contentBoxSize = lastEntry.devicePixelContentBoxSize?.[0];
+  if (contentBoxSize) {
+    width = contentBoxSize.inlineSize;
+    height = contentBoxSize.blockSize;
+  }
 
   mainCanvas.width = width;
   mainCanvas.height = height;
 
   enqueueFrame();
-}).observe(mainCanvas);
+}).observe(mainCanvas, {box: "device-pixel-content-box"});
 
 for (const input of document.querySelectorAll("[setting-name]")) {
   input.addEventListener("input", () => { enqueueFrame(); });
