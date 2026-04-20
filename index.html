@@ -159,7 +159,7 @@ summary:hover {
 </div>
 
 <script type="module">
-if (!("gpu" in navigator)) {
+if (!navigator.gpu) {
   errorBackground.setAttribute("visible", "");
   throw new Error("WebGPU is not available.");
 }
