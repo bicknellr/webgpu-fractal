@@ -223,6 +223,7 @@ const saveSettings = throttled(100, () => {
 
 const adapter = await navigator.gpu.requestAdapter();
 const device = await adapter.requestDevice();
+const format = navigator.gpu.getPreferredCanvasFormat();
 
 const buffer = device.createBuffer({
   usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
@@ -267,7 +268,7 @@ const renderPipeline = device.createRenderPipeline({
   },
   fragment: {
     targets: [{
-      format: "bgra8unorm",
+      format,
     }],
     entryPoint: "main",
     module: device.createShaderModule({
@@ -280,7 +281,7 @@ const mainCanvas = document.getElementById("mainCanvas");
 const context = mainCanvas.getContext("webgpu");
 context.configure({
   device,
-  format: navigator.gpu.getPreferredCanvasFormat(),
+  format,
 });
 
 const getCurrentViewMatrix = () => {
@@ -307,7 +308,7 @@ const enqueueFrame = (() => {
 
       context.configure({
         device,
-        format: navigator.gpu.getPreferredCanvasFormat(),
+        format,
       });
     }
 
@@ -324,7 +325,7 @@ const enqueueFrame = (() => {
 
     const renderPass = commandEncoder.beginRenderPass({
       colorAttachments: [{
-        view: context.getCurrentTexture().createView(),
+        view: context.getCurrentTexture(),
         loadOp: "clear",
         clearValue: {r: 0, g: 0, b: 0, a: 0},
         storeOp: "store",
